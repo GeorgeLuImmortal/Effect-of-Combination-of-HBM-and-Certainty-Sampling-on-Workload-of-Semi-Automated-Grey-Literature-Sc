@@ -3,7 +3,7 @@
 This repository is temporarily associated with paper [Lu, J., Henchion, M. and Mac Namee, B., 2021. Effect of Combination of HBM and Certainty Sampling on Workload of Semi-Automated Grey Literature Screening](https://icml.cc/Conferences/2021/ScheduleMultitrack?event=8362) (to be published at the 3rd Workshop of Human in the Loop, 38<sup>th</sup> ICML, 2021)
 
 ## Grey Literature Datasets (to be released)
-Csv files in the directory is just for providing a toy experiment samples. The results of this dataset is invalid since the dataset here is used for pretraining the language model (therefore has super high perfomance).
+Csv files in the directory is just for providing a toy experiment samples. The results of this dataset is invalid since the dataset here is used for pretraining the language model (therefore performance will be super high even if only 10 example are used for training).
 
 ## Usage
 
