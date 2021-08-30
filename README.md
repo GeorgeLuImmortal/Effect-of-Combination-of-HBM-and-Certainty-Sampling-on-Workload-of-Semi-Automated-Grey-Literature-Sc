@@ -1,6 +1,8 @@
 # Effect of Combination of HBM and Certainty Sampling onWorkload of Semi-Automated Grey Literature Screening 
 
-This repository is temporarily associated with paper [Lu, J., Henchion, M. and Mac Namee, B., 2021. Effect of Combination of HBM and Certainty Sampling on Workload of Semi-Automated Grey Literature Screening](https://icml.cc/Conferences/2021/ScheduleMultitrack?event=8362) (to be released at the 3rd Workshop of Human in the Loop, 38<sup>th</sup> ICML, 2021)
+This repository is temporarily associated with paper [Lu, J., Henchion, M. and Mac Namee, B., 2021. Effect of Combination of HBM and Certainty Sampling on Workload of Semi-Automated Grey Literature Screening](https://icml.cc/Conferences/2021/ScheduleMultitrack?event=8362) (to be published at the 3rd Workshop of Human in the Loop, 38<sup>th</sup> ICML, 2021)
+
+## Grey Literature Datasets (to be released)
 
 ## Usage
 
