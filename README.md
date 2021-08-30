@@ -1,6 +1,6 @@
-# A Sentence-level Hierarchical BERT Model for Document Classification with Limited Labelled Data
+# Effect of Combination of HBM and Certainty Sampling onWorkload of Semi-Automated Grey Literature Screening 
 
-This repository is temporarily associated with paper [Lu, J., Henchion, M., Bacher, I. and Mac Namee, B., 2021. A Sentence-level Hierarchical BERT Model for Document Classification with Limited Labelled Data. arXiv preprint arXiv:2106.06738.](https://arxiv.org/pdf/2106.06738.pdf)
+This repository is temporarily associated with paper [Lu, J., Henchion, M. and Mac Namee, B., 2021. Effect of Combination of HBM and Certainty Sampling onWorkload of Semi-Automated Grey Literature Screening (to be released at the 3rd Workshop of Human in the Loop, 38th ICML, 2021)](https://icml.cc/Conferences/2021/ScheduleMultitrack?event=8362)
 
 ## Usage
 
