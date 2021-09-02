@@ -752,15 +752,13 @@ def init_weights(module):
 
 
 
-
-
 def active_process_hbm_scratch(arg):
     """
     Active learning procedure for sentence-level Hierarchial Transformer model.
     """
     if arg.initial: 
         permutation = initial_seed_dataset(arg.n_seedsamples,arg.LABEL_emb,arg.initial_random_seed)
-       
+        
         
     
         normalizer = Normalize_HBM()
@@ -774,7 +772,7 @@ def active_process_hbm_scratch(arg):
         tensor_val_x = torch.from_numpy(TEXT_emb).type(torch.FloatTensor)
         tensor_val_y = torch.from_numpy(arg.LABEL_emb).type(torch.LongTensor)
         
-        bin_count = np.bincount(tensor_train_y)
+        bin_count, bin_count_ori = np.bincount(tensor_train_y), np.bincount(tensor_train_y)
         unique = np.unique(tensor_train_y)
         print (
         'initial training set size:',
@@ -797,13 +795,48 @@ def active_process_hbm_scratch(arg):
     else:
         
         permutation = arg.permutation
+        au_permutation = arg.au_permutation
+       
+        
+        X_train = arg.TEXT_emb[au_permutation]
+        Y_train = arg.LABEL_emb[au_permutation]
+        Y_train_ori = arg.LABEL_emb[permutation] 
+
+        X_val = arg.TEXT_emb
+        Y_val = arg.LABEL_emb
+        
+        bin_count_ori = np.bincount(Y_train_ori)
+        unique_ori = np.unique(Y_train_ori)
+        print (
+        'training set size before agressive undersampling:',
+        Y_train_ori.shape[0],
+        'unique(labels):',
+        unique_ori,
+        'label counts:',
+        bin_count_ori
+        )
+        
+        bin_count = np.bincount(Y_train)
+        unique = np.unique(Y_train)
+        print (
+        'training set size after agressive undersampling:',
+        Y_train.shape[0],
+        'unique(labels):',
+        unique,
+        'label counts:',
+        bin_count
+        )
+
+        print('Number of training examples ', len(Y_train))
+        
+        
        
         normalizer = Normalize_HBM()
-        X_train, TEXT_emb = normalizer.normalize(arg.TEXT_emb[permutation],arg.TEXT_emb,arg.max_len)
+        X_train, TEXT_emb = normalizer.normalize(arg.TEXT_emb[au_permutation],arg.TEXT_emb,arg.max_len)
         # X_train, TEXT_emb  = arg.TEXT_emb[permutation], arg.TEXT_emb
         
         tensor_train_x = torch.from_numpy(X_train).type(torch.FloatTensor)
-        tensor_train_y = torch.from_numpy(arg.LABEL_emb[permutation]).type(torch.LongTensor)
+        tensor_train_y = torch.from_numpy(arg.LABEL_emb[au_permutation]).type(torch.LongTensor)
 
         tensor_val_x = torch.from_numpy(TEXT_emb).type(torch.FloatTensor)
         tensor_val_y = torch.from_numpy(arg.LABEL_emb).type(torch.LongTensor)
@@ -880,10 +913,12 @@ def active_process_hbm_scratch(arg):
 
             numerator = bin_count[0]+bin_count[1]
             # weight = [bin_count[1]/denominator, (bin_count[0]/denominator)]
-            if arg.imbalanced_flag:
-                weight = [float(numerator/(2*bin_count[0])),float(numerator/(2*bin_count[1]))]
-            else:
-                weight = [1.0,1.0]
+
+            ## balanced weight for training set with quite imbalanced class distribution
+            # weight = [float(numerator/(2*bin_count[0])),float(numerator/(2*bin_count[1]))]
+
+            ## balanced weight for trainig set with balanced class distribution
+            weight = [1.0,1.0]
           
             print('balanced weight: ',weight)
             weight = torch.tensor(weight).cuda(arg.cuda_num)
@@ -911,11 +946,13 @@ def active_process_hbm_scratch(arg):
 
             losses.append(train_loss_tol)
             
-
+    # fig, ax = plt.subplots(figsize=(12.5,10))
+    # plt.plot(losses,label='loss')
+    # plt.show()
           
    
     with torch.no_grad():
-        model.eval()
+        model.train(False)
         y_eval_pred = []
         y_eval_true = []
         y_eval_prob = []
@@ -963,7 +1000,6 @@ def active_process_hbm_scratch(arg):
                 os.mkdir(attention_dir)
             
             torch.save(attention_scores,f"./outputs/{arg.dataset}/attention/{arg.initial_random_seed}_{arg.loop}.pt")
-      
 
         y_true_remain = np.delete(np.array(y_eval_true),permutation)
         y_pred_remain = np.delete(np.array(y_eval_pred),permutation)
@@ -972,12 +1008,12 @@ def active_process_hbm_scratch(arg):
         acc = accuracy_score(y_true_remain, y_pred_remain)
         f_score = f1_score(y_true_remain,y_pred_remain,average='micro')
         tn, fp, fn, tp = confusion_matrix(y_true_remain, y_pred_remain, labels=[0,1]).ravel()
-        print('TP_H',bin_count[1],' TN_H',bin_count[0], ' TP_M',tp, ' TN_M',tn, ' FP_M', fp, ' FN_M',fn)
+        print('TP_H',bin_count_ori[1],' TN_H',bin_count_ori[0], ' TP_M',tp, ' TN_M',tn, ' FP_M', fp, ' FN_M',fn)
 
         fpr, tpr, thresholds = metrics.roc_curve(y_true_remain, y_eval_prob_pos_remain, pos_label=1)
         auc = metrics.auc(fpr, tpr)
 
-        raw_result = {'TP_H':bin_count[1],'TN_H':bin_count[0], 'TP_M':tp, 'TN_M':tn, 'FP_M': fp, 'FN_M':fn}
+        raw_result = {'TP_H':bin_count_ori[1],'TN_H':bin_count_ori[0], 'TP_M':tp, 'TN_M':tn, 'FP_M': fp, 'FN_M':fn}
         raw_metrics = {'ACC':acc,'micro_f_score': f_score, 'AUC':auc,'coverage':float(raw_result['TP_H']/(raw_result['TP_H']+raw_result['TP_M']+raw_result['FN_M']))}
         print('ACC:',acc,'micro_f_score:', f_score, 'AUC:',auc)
         print(classification_report(y_true_remain,y_pred_remain))
@@ -990,6 +1026,7 @@ def active_process_hbm_scratch(arg):
 
     torch.cuda.empty_cache()
     
+
     return raw_result,raw_metrics,y_eval_prob,permutation
 
 
@@ -1013,12 +1050,11 @@ if __name__ == "__main__":
  
 
 
-    parser = OptionParser(usage='usage: -r random_seeds -d dataset_name -l loop -a enable_output_attention -n disable_output_attention -s selection_strategy -g gridsearch_interval -m max_len -c num_candidate -i initial_num_per_class')
+    parser = OptionParser(usage='usage: -r random_seeds -d dataset_name -l loop -a enable_output_attention -n disable_output_attention -g gridsearch_interval -m max_len -c num_candidate -i initial_num_per_class')
 
     
     parser.add_option("-d","--dataset_name", action="store", type="string", dest="dataset_name", help="directory of data encoded by token-level Roberta", default = 'animal_by_product')
     parser.add_option('-r', '--random_seeds', type='string', action='callback',dest='random_seeds',callback=list_callback,default=['1988','1989'])
-    parser.add_option("-s","--selection_strategy", action="store", type="string", dest="selection_strategy", help="selection strategy options are mostConfident and uncertainty", default = 'mostConfident')
     parser.add_option("-i","--initial_num_per_class", action="store", type="int", dest="initial_num_per_class", help="initial_num_per_class", default=5)
     parser.add_option("-g","--gridsearch_interval", action="store", type="int", dest="gridsearch_interval", help="perform gridsearch every N iterations", default=10)
     parser.add_option("-c","--num_candidate", action="store", type="int", dest="num_candidate", help="number of candidates selected from unlabelled pool each iteration", default=10)
@@ -1030,8 +1066,6 @@ if __name__ == "__main__":
 
     (options, _) = parser.parse_args()
 
-    if options.selection_strategy not in ['mostConfident', 'uncertainty']:
-        parser.error( "Sorry the selection strategy should be either mostConfident or uncertainty." )
 
     print('minmax normalize-------')
     print('max length:',options.max_len)
@@ -1050,10 +1084,10 @@ if __name__ == "__main__":
     dir_neg = dataset + '_neg.csv'
     dir_pos = dataset + '_pos.csv'
 
-    # representations_neg = genfromtxt(f"./datasets/roberta-base_data/{dir_neg}", delimiter=',')
-    # representations_pos = genfromtxt(f"./datasets/roberta-base_data/{dir_pos}", delimiter=',')
-    # ulti_representations = np.concatenate((representations_neg,representations_pos),axis=0)
-    # labels = np.array([0]*len(representations_neg)+[1]*len(representations_pos))
+    representations_neg = genfromtxt(f"./datasets/roberta-base_data/{dir_neg}", delimiter=',')
+    representations_pos = genfromtxt(f"./datasets/roberta-base_data/{dir_pos}", delimiter=',')
+    ulti_representations = np.concatenate((representations_neg,representations_pos),axis=0)
+    labels = np.array([0]*len(representations_neg)+[1]*len(representations_pos))
 
     TEXT_emb,LABEL_emb = import_data(dataset, options.max_len)
     
@@ -1069,29 +1103,30 @@ if __name__ == "__main__":
 
             if loop==0:
                 
-                selection_method = options.selection_strategy
+                selection_method = 'uncertainty'
                
                 
                 args = easydict.EasyDict({
-                        "num_epochs": args_hbm['no_epochs'],
-                        "batch_size": args_hbm['train_batch'],
-                        "eval_batch_size":args_hbm['val_batch'],
-                        "n_seedsamples":options.initial_num_per_class,
-                        "initial_random_seed":seed,
-                        "initial": True,
-                        "TEXT_emb": TEXT_emb,
-                        "LABEL_emb": LABEL_emb,
-                        "loop":loop,
-                        "max_len": options.max_len,
-                        "cuda_num":args_hbm['cuda_num'],
-                        "attention": options.attention,
-                        "dataset": dataset,
-                        "lr":args_hbm['lr'],
-                        "num_heads" : 1,
-                        "lr_warmup" : 0,
-                        "gradient_clipping" : args_hbm['gradient_clipping'],
-                        "imbalanced_flag":False,
-                        "config":config
+                            "n_seedsamples":options.initial_num_per_class,
+                            "initial_random_seed":seed,
+                            "num_epochs": args_hbm['no_epochs'],
+                            "batch_size": args_hbm['train_batch'],
+                            "eval_batch_size":args_hbm['val_batch'],
+                            "lr":args_hbm['lr'],
+                            "num_heads" : 1,
+                            "lr_warmup" : 0,
+                            "gradient_clipping" : args_hbm['gradient_clipping'],
+                            "initial": True,
+                            "TEXT_emb": TEXT_emb,
+                            "LABEL_emb": LABEL_emb,
+                            "imbalanced_flag":True,
+                            "config":config,
+                            "loop":loop,
+                            "max_len":options.max_len,
+                            "cuda_num":args_hbm['cuda_num'],
+                            "attention": options.attention,
+                            "dataset": dataset
+                        
 
                 })
 
@@ -1115,108 +1150,132 @@ if __name__ == "__main__":
                     os.mkdir(save_dir)
                 
                 df[seed] = [item for item in raw_results]
-                df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_{selection_method}_result.csv",index=False)
+                df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_fastread_result.csv",index=False)
                 df_p[seed] = [permutation for permutation in permutations]
-                df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_{selection_method}_result.csv",index=False)
+                df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_fastread_result.csv",index=False)
                 df_m[seed] = [metric for metric in raw_metrics]
-                df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_{selection_method}_result.csv",index=False)
+                df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_fastread_result.csv",index=False)
         
-            elif loop<5:
-                
-
-              
-                args = easydict.EasyDict({
-                        "num_epochs": args_hbm['no_epochs'],
-                        "batch_size": args_hbm['train_batch'],
-                        "eval_batch_size":args_hbm['val_batch'],
-                        "n_seedsamples":options.initial_num_per_class,
-                        "initial_random_seed":seed,
-                        "permutation": permutation,
-                        "initial": False,
-                        "TEXT_emb": TEXT_emb,
-                        "LABEL_emb": LABEL_emb,
-                        "loop":loop,
-                        "max_len": options.max_len,
-                        "cuda_num":args_hbm['cuda_num'],
-                        "attention": options.attention,
-                        "dataset": dataset,
-                        "lr":args_hbm['lr'],
-                        "num_heads" : 1,
-                        "lr_warmup" : 0,
-                        "gradient_clipping" : args_hbm['gradient_clipping'],
-                        "imbalanced_flag":True,
-                        "config": config
-                })
-
-                raw_predict,raw_metric,y_prob,permutation = active_process_hbm_scratch(args)
-
-
-                permutation = sample_candidates(num_candidate=options.num_candidate,permutation=permutation,selection_method=selection_method,y_prob=y_prob,loop=loop)
-                permutations.append(permutation)
-                
-                raw_results.append(raw_predict)
-                raw_metrics.append(raw_metric)
-                
-                df = pd.DataFrame()
-                df_p = pd.DataFrame()
-                df_m = pd.DataFrame()
-                
-                df[seed] = [item for item in raw_results]
-                df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_{selection_method}_result.csv",index=False)
-                df_p[seed] = [permutation for permutation in permutations]
-                df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_{selection_method}_result.csv",index=False)
-                df_m[seed] = [metric for metric in raw_metrics]
-                df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_{selection_method}_result.csv",index=False)
-                
-
-                
             else:
+
+                neg_permutation = [index for index in permutation if labels[index]==0]
+                pos_permutation = [index for index in permutation if labels[index]==1]
+                num_pos_train = np.sum(labels[permutation])
+                num_neg_train = len(permutation)-num_pos_train
+
+                if num_pos_train>30:
+
+                    selection_method = 'mostConfident'
+
+                    ## aggressive undersampling
+                    if num_neg_train - num_pos_train>0:
+                        print('-'*20,'start aggressive undersampling','-'*20)
+
+                        au_neg = list(np.argsort(np.array(y_prob)[neg_permutation][:,0])[-num_pos_train:])
+                        au_permutation = pos_permutation+au_neg
+
+
+                    else:
+                        au_permutation = permutation
             
-                selection_method = options.selection_strategy
+
+                              
+
               
-                args = easydict.EasyDict({
-                        "n_seedsamples":options.initial_num_per_class,
-                        "initial_random_seed":seed,
-                        "num_epochs": args_hbm['no_epochs'],
-                        "batch_size": args_hbm['train_batch'],
-                        "eval_batch_size":args_hbm['val_batch'],
-                        "lr":args_hbm['lr'],
-                        "num_heads" : 1,
-                        "lr_warmup" : 0,
-                        "gradient_clipping" : args_hbm['gradient_clipping'],
-                        "permutation": permutation,
-                        "initial": False,
-                        "TEXT_emb": TEXT_emb,
-                        "LABEL_emb": LABEL_emb,
-                        "imbalanced_flag":True,
-                        "config":config,
-                        "loop":loop,
-                        "max_len":options.max_len,
-                        "cuda_num":args_hbm['cuda_num'],
-                        "attention": options.attention,
-                        "dataset": dataset
+                    args = easydict.EasyDict({
+                            "n_seedsamples":options.initial_num_per_class,
+                            "initial_random_seed":seed,
+                            "num_epochs": args_hbm['no_epochs'],
+                            "batch_size": args_hbm['train_batch'],
+                            "eval_batch_size":args_hbm['val_batch'],
+                            "lr":args_hbm['lr'],
+                            "num_heads" : 1,
+                            "lr_warmup" : 0,
+                            "gradient_clipping" : args_hbm['gradient_clipping'],
+                            "permutation": permutation,
+                            "initial": False,
+                            "TEXT_emb": TEXT_emb,
+                            "LABEL_emb": LABEL_emb,
+                            "imbalanced_flag":True,
+                            "config":config,
+                            "loop":loop,
+                            "max_len":options.max_len,
+                            "cuda_num":args_hbm['cuda_num'],
+                            "attention": options.attention,
+                            "dataset": dataset,
+                            "au_permutation": au_permutation
 
 
-                })
+                    })
 
-                raw_predict,raw_metric,y_prob,permutation = active_process_hbm_scratch(args)
+                    raw_predict,raw_metric,y_prob,permutation = active_process_hbm_scratch(args)
 
-                permutation = sample_candidates(num_candidate=options.num_candidate,permutation=permutation,selection_method=selection_method,y_prob=y_prob,loop=loop)
-                permutations.append(permutation)
+                    permutation = sample_candidates(num_candidate=options.num_candidate,permutation=permutation,selection_method=selection_method,y_prob=y_prob,loop=loop)
+                    permutations.append(permutation)
+                    
+                    raw_results.append(raw_predict)
+                    raw_metrics.append(raw_metric)
+                    
+                    df = pd.DataFrame()
+                    df_p = pd.DataFrame()
+                    df_m = pd.DataFrame()
+                    
+                    df[seed] = [item for item in raw_results]
+                    df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_fastread_result.csv",index=False)
+                    df_p[seed] = [permutation for permutation in permutations]
+                    df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_fastread_result.csv",index=False)
+                    df_m[seed] = [metric for metric in raw_metrics]
+                    df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_fastread_result.csv",index=False)
                 
-                raw_results.append(raw_predict)
-                raw_metrics.append(raw_metric)
+
                 
-                df = pd.DataFrame()
-                df_p = pd.DataFrame()
-                df_m = pd.DataFrame()
+                else:
                 
-                df[seed] = [item for item in raw_results]
-                df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_{selection_method}_result.csv",index=False)
-                df_p[seed] = [permutation for permutation in permutations]
-                df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_{selection_method}_result.csv",index=False)
-                df_m[seed] = [metric for metric in raw_metrics]
-                df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_{selection_method}_result.csv",index=False)
+                    
+                  
+                    args = easydict.EasyDict({
+                            "n_seedsamples":options.initial_num_per_class,
+                            "initial_random_seed":seed,
+                            "num_epochs": args_hbm['no_epochs'],
+                            "batch_size": args_hbm['train_batch'],
+                            "eval_batch_size":args_hbm['val_batch'],
+                            "lr":args_hbm['lr'],
+                            "num_heads" : 1,
+                            "lr_warmup" : 0,
+                            "gradient_clipping" : args_hbm['gradient_clipping'],
+                            "permutation": permutation,
+                            "initial": False,
+                            "TEXT_emb": TEXT_emb,
+                            "LABEL_emb": LABEL_emb,
+                            "imbalanced_flag":True,
+                            "config":config,
+                            "loop":loop,
+                            "max_len":options.max_len,
+                            "cuda_num":args_hbm['cuda_num'],
+                            "attention": options.attention,
+                            "dataset": dataset,
+                            "au_permutation": permutation
+
+                    })
+
+                    raw_predict,raw_metric,y_prob,permutation = active_process_hbm_scratch(args)
+
+                    permutation = sample_candidates(num_candidate=options.num_candidate,permutation=permutation,selection_method=selection_method,y_prob=y_prob,loop=loop)
+                    permutations.append(permutation)
+                    
+                    raw_results.append(raw_predict)
+                    raw_metrics.append(raw_metric)
+                    
+                    df = pd.DataFrame()
+                    df_p = pd.DataFrame()
+                    df_m = pd.DataFrame()
+                    
+                    df[seed] = [item for item in raw_results]
+                    df.to_csv(f"./outputs/{dataset}/raw_hbm_{seed}_fastread_result.csv",index=False)
+                    df_p[seed] = [permutation for permutation in permutations]
+                    df_p.to_csv(f"./outputs/{dataset}/permutation_hbm_{seed}_fastread_result.csv",index=False)
+                    df_m[seed] = [metric for metric in raw_metrics]
+                    df_m.to_csv(f"./outputs/{dataset}/metrics_hbm_{seed}_fastread_result.csv",index=False)
                 
                 
                        
