@@ -22,8 +22,11 @@ from tqdm import tqdm
 import pickle
 import matplotlib.pyplot as plt
 from optparse import OptionParser
-
+from sklearn.cluster import KMeans
 from gensim.models import fasttext
+from nltk import word_tokenize 
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from scipy.special import softmax
 
 import os
 os.environ['PYTHONHASHSEED'] = str(2019)
@@ -108,6 +111,37 @@ def sentences_segmentation(corpora,tokenizer,min_token=0):
     return segmented_documents
 
 
+def encode_PV_TD(dataset_name):
+
+    corpora, class_one_len, class_two_len = read_data(os.path.join(args['text_data_dir'],'%s/'%(dataset_name)))
+
+    ## pretrained model downloaded from https://fasttext.cc/docs/en/pretrained-vectors.html
+    model = fasttext.load_facebook_model('wiki.en.bin')
+    
+    all_corpus = corpora[0]+corpora[1]
+    cleaned_corpus = clean_corpus(all_corpus)
+
+    print('total number of examples ',len(cleaned_corpus),'\n')
+
+    document = [word_tokenize(doc) for doc in cleaned_corpus]
+    documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(document)]
+    model = Doc2Vec(documents, vector_size=1000, window=2, min_count=1, workers=1,epochs=10)
+    representations = []
+    for doc in tqdm(document):
+        representations.append(model.infer_vector(doc))
+
+    representations = np.array(representations)
+
+    print('represetation shape', representations.shape)
+
+    kmeans = KMeans(n_clusters=300, random_state=0).fit(representations)
+    centres = kmeans.cluster_centers_
+    td_reps = np.dot(representations, np.transpose(centres))
+    td_reps = softmax(td_reps,axis=1)
+    
+    print('PV-TD represetation shape', td_reps.shape)
+    
+    return td_reps,class_one_len,class_two_len
 
 
 def encode_fasttext(dataset_name):
@@ -353,7 +387,7 @@ def encode_roberta_hbm(dataset_name):
 
 if __name__ == "__main__":
 
-    parser = OptionParser(usage='usage: -t encoding_methods (hbm, roberta, fasttext) -d dataset_name')
+    parser = OptionParser(usage='usage: -t encoding_methods (hbm, roberta, fasttext, PV-TD) -d dataset_name')
 
     
     parser.add_option("-d","--dataset_name", action="store", type="string", dest="dataset_name", help="directory of raw text data", default = 'animal_by_product')
@@ -373,8 +407,8 @@ if __name__ == "__main__":
 
     for value in encoding_methods:
         print(value)
-        if value not in ['roberta','hbm','fasttext']:
-            parser.error( "Encoding method choice are hbm, fasttext or roberta." )
+        if value not in ['roberta','hbm','fasttext','PV-TD']:
+            parser.error( "Encoding method choice are hbm, fasttext or roberta or PV-TD." )
 
 
     for value in encoding_methods:
@@ -406,3 +440,12 @@ if __name__ == "__main__":
 
             np.savetxt(os.path.join(args['data_dir'],"roberta-base_data/%s_neg_cls.csv"%(dataset_name)), representations_cls[:class_one_len], delimiter=",")
             np.savetxt(os.path.join(args['data_dir'],"roberta-base_data/%s_pos_cls.csv"%(dataset_name)), representations_cls[class_one_len:], delimiter=",")
+
+        if value == 'PV-TD':
+
+            representations,class_one_len, class_two_len = encode_PV_TD(dataset_name)
+
+            np.savetxt(os.path.join(args['data_dir'],"PV-TD_data/%s_neg.csv"%(dataset_name)), representations[:class_one_len], delimiter=",")
+            np.savetxt(os.path.join(args['data_dir'],"PV-TD_data/%s_pos.csv"%(dataset_name)), representations[class_one_len:], delimiter=",")
+
+  
