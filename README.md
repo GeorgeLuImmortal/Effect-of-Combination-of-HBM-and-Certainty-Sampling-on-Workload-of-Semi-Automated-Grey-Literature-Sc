@@ -38,7 +38,13 @@ We can evaluate the HBM + Certainty/Uncertainty:
 
     python run_active_learning_hbm.py -l num_active_learning_iterations -r random_seeds -s selection_strategy -m max_len
 
-The `num_active_learning_iterations` can be random int numbers up to the size of the datasets, for example  `-l 10` means active learning process iterate 10 loops and 100 documents will be shown to the user (we set the number of labelled examples each step 10 documents).  The `random_seeds` are random state for subsampling initial training set. For example `-r 1988,1999` will training HBM with 2 different training sets, i.e. 10 labelled instances sampled by seed 1988, 10 labelled instances sampled by seed 1999.
+The `num_active_learning_iterations` can be random int numbers up to the size of the datasets, for example  `-l 10` means active learning process iterate 10 loops and 100 documents will be shown to the user (we set the number of labelled examples each step 10 documents).  The `random_seeds` are random state for subsampling initial training set. For example `-r 1988,1999` will training HBM with 2 different training sets, i.e. 10 labelled instances sampled by seed 1988, 10 labelled instances sampled by seed 1999. `max_len` is the max length of sentences for document set for HBM and `selection_strategy` means the selection method used in active learning, the options are `mostConfident` for certainty sampling and `uncertainty` for uncertainty sampling. Additionally, if you want to output attention scores as well, you need `-a` otherwise `-n` for disabling output attention scores.
+
+For HBM + FastRead
+
+    python run_active_learning_hbm_fastread.py
+
+### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
 
 The script then evaluate the performance of HBM in the rest testing set (i.e. the whole dataset minus the 200 instances that sampled out as the training set, the details can be referred in the paper). The evaluation results are stored in directory "outputs/". Furthermore, the concrete results of each step are stored in "outputs/hbm_results/". The results files starting with "auc_" store the AUC score results while files starting with "raw_" store the confusion matrix (tp, tn, fp, fn).
 
