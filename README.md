@@ -44,9 +44,16 @@ For HBM + FastRead:
 
     python run_active_learning_hbm_fastread.py -l num_active_learning_iterations -r random_seeds -m max_len
     
-The disable/enable output attention scores is the same as the previous one.
+The disable/enable output attention scores is the same as the previous one. For all usages please input `-h`.
+
+The evaluation results are stored in directory "outputs/". Furthermore, the concrete results of each step are stored in "outputs/#datasetname/". The results files starting with "metric_" store various evaluation metric results (AUC, coverage, ACC, etc.) while files starting with "raw_" store the confusion matrix (tp, tn, fp, fn), and files starting with "permutation_" store the index of documents selected in each step.
 
 ### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
 
-The script then evaluate the performance of HBM in the rest testing set (i.e. the whole dataset minus the 200 instances that sampled out as the training set, the details can be referred in the paper). The evaluation results are stored in directory "outputs/". Furthermore, the concrete results of each step are stored in "outputs/hbm_results/". The results files starting with "auc_" store the AUC score results while files starting with "raw_" store the confusion matrix (tp, tn, fp, fn).
+We can evaluate SVM-based method (pretrained RoBERTA + SVM or PV-TD + SVM) by: 
 
+    python run_active_learning_svm-based.py -l num_active_learning_iterations -r random_seeds -s selection_strategy -e encoding_method
+    
+All arguments have the same meaining as those of previous. `encoding_method` means the text representation technique used, the options are `roberta-base` and `PV-TD`. For all configurations, please input `-h`
+
+### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
