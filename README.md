@@ -36,13 +36,13 @@ The options of -t are `hbm` (corresponding to the sentence representation genera
 
 We can evaluate the HBM + Certainty/Uncertainty:
 
-    python run_active_learning_hbm.py -l num_active_learning_iterations -r random_seeds -s selection_strategy -m max_len
+    python run_active_learning_hbm.py -d datasetname -l num_active_learning_iterations -r random_seeds -s selection_strategy -m max_len
 
 The `num_active_learning_iterations` can be random int numbers up to the size of the datasets, for example  `-l 10` means active learning process iterate 10 loops and 100 documents will be shown to the user (we set the number of labelled examples each step 10 documents).  The `random_seeds` are random state for subsampling initial training set. For example `-r 1988,1999` will training HBM with 2 different training sets, i.e. 10 labelled instances sampled by seed 1988, 10 labelled instances sampled by seed 1999. `max_len` is the max length of sentences for document set for HBM and `selection_strategy` means the selection method used in active learning, the options are `mostConfident` for certainty sampling and `uncertainty` for uncertainty sampling. Additionally, if you want to output attention scores as well, you need `-a` otherwise `-n` for disabling output attention scores.
 
 For HBM + FastRead:
 
-    python run_active_learning_hbm_fastread.py -l num_active_learning_iterations -r random_seeds -m max_len
+    python run_active_learning_hbm_fastread.py -d datasetname -l num_active_learning_iterations -r random_seeds -m max_len
     
 The disable/enable output attention scores is the same as the previous one. For all usages please input `-h`.
 
@@ -50,10 +50,29 @@ The evaluation results are stored in directory "outputs/". Furthermore, the conc
 
 ### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
 
-We can evaluate SVM-based method (pretrained RoBERTA + SVM or PV-TD + SVM) by: 
+We can evaluate SVM-based method (pretrained RoBERTa + SVM or PV-TD + SVM) by: 
 
-    python run_active_learning_svm-based.py -l num_active_learning_iterations -r random_seeds -s selection_strategy -e encoding_method
+    python run_active_learning_svm-based.py -d datasetname -l num_active_learning_iterations -r random_seeds -s selection_strategy -e encoding_method
     
-All arguments have the same meaining as those of previous. `encoding_method` means the text representation technique used, the options are `roberta-base` and `PV-TD`. For all configurations, please input `-h`
+All arguments have the same meaining as those of previous. `encoding_method` means the text representation technique used, the options are `roberta-base` and `PV-TD`. 
 
-### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
+Similarly, for RoBERTa/PV-TD + FastRead:
+
+    python run_active_learning_svm-based_fastread.py -d datasetname -l num_active_learning_iterations -r random_seeds -e encoding_method
+   
+For all configurations, please input `-h`. Similarly the results are stored in "outputs/#datasetname/".
+
+
+### Step 3. Run ATAL + Certainty/Uncertainty/FastRead
+
+We can evaluate ATAL by: 
+
+    python run_ATAL.py -d datasetname -l num_active_learning_iterations -r random_seeds -s selection_method -a fine_tune_learning_rate
+    
+All arguments have the same meaning as those of previous, except the `-a fine_tune_learning_rate` which is the learning rate for fine tuning.
+
+Similarly, for ATAL + FastRead:
+    
+    python run_ATAL_fastread.py -d datasetname -l num_active_learning_iterations -r random_seeds -a fine_tune_learning_rate
+    
+For all configurations, please input `-h`. Similarly the results are stored in "outputs/#datasetname/".
