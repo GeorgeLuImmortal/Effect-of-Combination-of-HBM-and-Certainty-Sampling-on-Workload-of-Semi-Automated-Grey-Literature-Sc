@@ -359,7 +359,7 @@ if __name__ == "__main__":
  
 
 
-    parser = OptionParser(usage='usage: -r random_seeds -d dataset_name -l loop -s selection_strategy -g gridsearch_interval  -c num_candidate -i initial_num_per_class -e text_representation')
+    parser = OptionParser(usage='usage: -r random_seeds -d dataset_name -l loop -g gridsearch_interval  -c num_candidate -i initial_num_per_class -e text_representation')
 
     
     parser.add_option("-d","--dataset_name", action="store", type="string", dest="dataset_name", help="directory of data encoded by token-level Roberta", default = 'animal_by_product')
@@ -368,7 +368,6 @@ if __name__ == "__main__":
     parser.add_option("-g","--gridsearch_interval", action="store", type="int", dest="gridsearch_interval", help="perform gridsearch every N iterations", default=10)
     parser.add_option("-c","--num_candidate", action="store", type="int", dest="num_candidate", help="number of candidates selected from unlabelled pool each iteration", default=10)
     parser.add_option("-l","--loop", action="store", type="int", dest="loop", help="total number of iterations", default=50)
-    parser.add_option("-s","--selection_strategy", action="store", type="string", dest="selection_strategy", help="selection strategy options are mostConfident and uncertainty", default = 'mostConfident')
     parser.add_option("-e","--encoding_method", action="store", type="string", dest="encoding_method", help="text representation technique options are roberta-base and PV-TD", default = 'roberta-base')
 
 
