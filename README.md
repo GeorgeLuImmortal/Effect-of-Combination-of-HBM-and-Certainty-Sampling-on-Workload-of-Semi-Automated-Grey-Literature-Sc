@@ -47,7 +47,7 @@ The disable/enable output attention scores is the same as the previous one. For 
 
 The evaluation results are stored in directory "outputs/". Furthermore, the concrete results of each step are stored in "outputs/#datasetname/". The results files starting with "metric_" store various evaluation metric results (AUC, coverage, ACC, etc.) while files starting with "raw_" store the confusion matrix (tp, tn, fp, fn), and files starting with "permutation_" store the index of documents selected in each step.
 
-### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
+### Step 3. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
 
 We can evaluate SVM-based method (pretrained RoBERTa + SVM or PV-TD + SVM) by: 
 
@@ -61,7 +61,7 @@ Similarly, for RoBERTa/PV-TD + FastRead:
 For all configurations, please input `-h`. Similarly the results are stored in "outputs/#datasetname/".
 
 
-### Step 3. Run ATAL + Certainty/Uncertainty/FastRead
+### Step 4. Run ATAL + Certainty/Uncertainty/FastRead
 
 We can evaluate ATAL by: 
 
@@ -73,3 +73,7 @@ Similarly, for ATAL + FastRead:
     python run_ATAL_fastread.py -d datasetname -l num_active_learning_iterations -r random_seeds -a fine_tune_learning_rate
     
 For all configurations, please input `-h`. Similarly the results are stored in "outputs/#datasetname/".
+
+### Step 5 Visualise attention score
+
+When we run the script in __Step 2__, besides the AUC scores on testing set, we can also get the attention scores of each sentences that measure whether sentences contribute a lot in forming the document representation. Hence, these attention scores can serve as clue of whether the sentences are important or not. The attention scores are stored in "outputs/#dataset_name/attention/". You can visualise this attention scores by playing with the notebook __Visualization_of_informative_sentences.ipynb__.
