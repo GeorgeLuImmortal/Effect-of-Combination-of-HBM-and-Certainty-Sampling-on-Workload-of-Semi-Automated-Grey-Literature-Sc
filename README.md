@@ -40,9 +40,11 @@ We can evaluate the HBM + Certainty/Uncertainty:
 
 The `num_active_learning_iterations` can be random int numbers up to the size of the datasets, for example  `-l 10` means active learning process iterate 10 loops and 100 documents will be shown to the user (we set the number of labelled examples each step 10 documents).  The `random_seeds` are random state for subsampling initial training set. For example `-r 1988,1999` will training HBM with 2 different training sets, i.e. 10 labelled instances sampled by seed 1988, 10 labelled instances sampled by seed 1999. `max_len` is the max length of sentences for document set for HBM and `selection_strategy` means the selection method used in active learning, the options are `mostConfident` for certainty sampling and `uncertainty` for uncertainty sampling. Additionally, if you want to output attention scores as well, you need `-a` otherwise `-n` for disabling output attention scores.
 
-For HBM + FastRead
+For HBM + FastRead:
 
-    python run_active_learning_hbm_fastread.py
+    python run_active_learning_hbm_fastread.py -l num_active_learning_iterations -r random_seeds -m max_len
+    
+The disable/enable output attention scores is the same as the previous one.
 
 ### Step 2. Run SVM-based method (RoBERTa, PV-TD) + Certainty/Uncertainty/FastRead
 
